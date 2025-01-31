@@ -1,0 +1,7 @@
+pyautogui==0.9.54
+pytesseract==0.3.10
+Pillow==9.0.0
+keyboard==0.13.5
+requests==2.27.1
+numpy==1.22.3
+pyinstaller
