@@ -5,14 +5,10 @@ import pytesseract
 from PIL import Image
 import keyboard
 import re
-import sys
 import threading
 import requests
 import tkinter as tk
-from tkinter import scrolledtext
-from tkinter import simpledialog
 import numpy as np
-import ctypes
 
 
 # Настройка пути к Tesseract OCR (измените, если необходимо)
@@ -263,6 +259,22 @@ def send_telegram_message(message):
     except requests.exceptions.RequestException as e:
         print(f"Error sending Telegram message: {e}")
 
+def load_wait_duration(answer):
+    """ Запрашивает у пользователя значение wait_duration через консоль. """
+    while True:
+        try:
+            if int(answer) == 1:
+                pizdec = 70
+                print(f"Используется фиксированная задержка: {pizdec} сек")
+                return pizdec
+            elif int(answer) == 2:
+                pizdec = random.randint(70, 180)
+                print(f"Используется случайная задержка: {pizdec} сек")
+                return pizdec
+            else:
+                print("Некорректный ввод. Пожалуйста, введите 1 или 2.")
+        except ValueError:
+            print("Некорректный ввод. Пожалуйста, введите целое число.")
 
 def compare_screenshots(img1, img2, tolerance):
     """
@@ -370,9 +382,8 @@ def process_actions():
                 except Exception as e:
                     print(f"Ошибка при отправке сообщения Telegram: {e}")
                 wait_time = 0
-                wait_duration = random.randint(70, 240)
-                print(f"Ожидание {wait_duration} секунд...")
-                while wait_time < wait_duration and not stop_event.is_set(): #check if stop
+                pizdec = int(load_wait_duration(answer))
+                while wait_time < pizdec and not stop_event.is_set():  # check if stop
                      time.sleep(1)
                      wait_time += 1
                 if stop_event.is_set():
@@ -409,9 +420,8 @@ def process_actions():
             # Пункт 15
             click(click_start_sell[0], click_start_sell[1]) # Кликаем на "Начать продажу"
             wait_time = 0
-            wait_duration = random.randint(70, 240)
-            print(f"Ожидание {wait_duration} секунд...")
-            while wait_time < wait_duration and not stop_event.is_set():
+            pizdec = int(load_wait_duration(answer))
+            while wait_time < pizdec and not stop_event.is_set():  # check if stop
                 time.sleep(1)
                 wait_time += 1
             if stop_event.is_set():
@@ -447,9 +457,8 @@ def process_actions():
                     except Exception as e:
                         print(f"Ошибка при отправке сообщения Telegram: {e}")
                     wait_time = 0
-                    wait_duration = random.randint(70, 240)
-                    print(f"Ожидание {wait_duration} секунд...")
-                    while wait_time < wait_duration and not stop_event.is_set():
+                    pizdec = int(load_wait_duration(answer))
+                    while wait_time < pizdec and not stop_event.is_set():  # check if stop
                          time.sleep(1)
                          wait_time += 1
                     if stop_event.is_set():
@@ -482,9 +491,8 @@ def process_actions():
                 click(click_start_sell[0], click_start_sell[1]) # Кликаем на "Начать продажу"
                 print("Ожидание 70 секунд...")
                 wait_time = 0
-                wait_duration = random.randint(70, 240)
-                print(f"Ожидание {wait_duration} секунд...")
-                while wait_time < wait_duration and not stop_event.is_set():
+                pizdec = int(load_wait_duration(answer))
+                while wait_time < pizdec and not stop_event.is_set():  # check if stop
                     time.sleep(1)
                     wait_time += 1
                 if stop_event.is_set():
@@ -495,9 +503,8 @@ def process_actions():
                 print("Все ок.")
                 added_sum = sum11
                 wait_time = 0
-                wait_duration = random.randint(70, 240)
-                print(f"Ожидание {wait_duration} секунд...")
-                while wait_time < wait_duration and not stop_event.is_set():
+                pizdec = int(load_wait_duration(answer))
+                while wait_time < pizdec and not stop_event.is_set():  # check if stop
                    time.sleep(1)
                    wait_time += 1
                 if stop_event.is_set():
@@ -514,7 +521,7 @@ def start_script():
     global stop_event
     stop_event.clear()  # Сбрасываем флаг остановки перед запуском
     process_actions()
-    print("///-----------PAUSE---------///")  # Сообщение о паузе
+    print("///------------------------------------PAUSE------------------------------------///")   # Сообщение о паузе
 
 
 if __name__ == "__main__":
@@ -523,6 +530,7 @@ if __name__ == "__main__":
     try:
         while True:
             load_stop_sum()  # Загружаем значение стоп суммы
+            answer = input("Введите 1 для фиксированной задержки (70 сек)\nВведите 2 для случайной задержки (70-180 сек)\n ")
             keyboard.add_hotkey('f9', lambda: stop_event.set())
             keyboard.wait('f10')  # ожидаем нажатие f10
             start_script() # Запускаем скрипт
