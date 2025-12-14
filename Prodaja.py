@@ -294,7 +294,7 @@ def process_selling():
                    SCREEN_PRICE[2], SCREEN_PRICE[3], "price_init.png")
     Image.open("price_init.png").save("price.png")
     current_price = recognize_price("price.png")
-    print(f"моя цена: {current_price}")
+    print(f"Начальная цена: {current_price}")
     
     while not stop_event.is_set():
         try:
@@ -315,15 +315,14 @@ def process_selling():
             
             if compare_images(my_nick, curr_nick_img):
                 print("Это мой лот, проверяю конкурента...")
-                take_screenshot(screen_enemy[0], screen_enemy[1],
-                              screen_enemy[2], screen_enemy[3],
+                take_screenshot(SCREEN_ENEMY[0], SCREEN_ENEMY[1],
+                              SCREEN_ENEMY[2], SCREEN_ENEMY[3],
                               "price_competitor.png")
                 Image.open("price_competitor.png").save("price.png")
                 comp_price = recognize_price("price.png")
                 print(f"Моя цена: {current_price}, цена конкурента: {comp_price}")
-                raznica = comp_price - current_price
                 
-                if comp_price > 0 and raznica > 40:
+                if comp_price > 0 and (comp_price - current_price) > 40:
                     new_price = comp_price - random.choice([1, 2, 5, 10, 20])
                     if new_price >= stop_sum:
                         change_price(new_price)
@@ -331,22 +330,27 @@ def process_selling():
                     else:
                         print(f"Новая цена {new_price} ниже stop_sum {stop_sum}")
                         send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
-                        continue
+                else:
+                    print("Разница небольшая, жду...")
+            
             else:
+                print("Чужой лот, подрезаю...")
                 take_screenshot(SCREEN_PRICE[0], SCREEN_PRICE[1],
                               SCREEN_PRICE[2], SCREEN_PRICE[3],
-                              "price_competitor.png")
-                Image.open("price_competitor.png").save("price.png")
-                comp_price = recognize_price("price.png")
-                new_price = comp_price - random.choice([1, 2, 5, 10, 20])
-                if new_price >= stop_sum:
-                    change_price(new_price)
-                    current_price = new_price
-                else:
-                    print(f"Новая цена {new_price} ниже stop_sum {stop_sum}")
-                    send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
-                    continue
-
+                              "price_current.png")
+                Image.open("price_current.png").save("price.png")
+                target_price = recognize_price("price.png")
+                print(f"Цена цели: {target_price}")
+                
+                if target_price > 0:
+                    my_price = target_price - random.choice([1, 2, 5, 10, 20])
+                    if my_price >= stop_sum:
+                        change_price(my_price)
+                        current_price = my_price
+                    else:
+                        print(f"Цена {my_price} ниже лимита {stop_sum}")
+                        send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
+            
             wait_sec = get_wait_time(answer)
             print(f"Жду {wait_sec} сек...")
             for _ in range(wait_sec):
