@@ -236,7 +236,7 @@ def get_wait_time(mode):
 def check_balance_and_notify_sell():
     balance = recognize_balance()
     print(f"Баланс: {balance}")
-    if balance > 2000000000:
+    if balance > 20000000000:
         send_telegram_message("🔥🔥🔥ВСЕ ПРОДАЛОСЬ🔥🔥🔥", is_buy=False)
         time.sleep(3)
         send_telegram_message(f"🔥🔥🔥ПОСЛЕДНЯЯ ЦЕНА: {current_price}🔥🔥🔥", is_buy=False)
