@@ -36,7 +36,7 @@ import numpy as np
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
-Limit_summ = 1
+Limit_summ = 30
 stop_event = threading.Event()
 current_price = 0
 stop_sum = 0
@@ -237,7 +237,7 @@ def get_wait_time(mode):
 def check_balance_and_notify_sell():
     balance = recognize_balance()
     print(f"Баланс: {balance}")
-    if balance > (Limit_summ*1000000000):
+    if balance > (Limit_summ*100000000):
         send_telegram_message("🔥🔥🔥ВСЕ ПРОДАЛОСЬ🔥🔥🔥", is_buy=False)
         time.sleep(3)
         send_telegram_message(f"🔥🔥🔥ПОСЛЕДНЯЯ ЦЕНА: {current_price}🔥🔥🔥", is_buy=False)
