@@ -330,23 +330,27 @@ def process_selling():
                     else:
                         print(f"Новая цена {new_price} ниже stop_sum {stop_sum}")
                         send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
-                        print("Чужой лот, подрезаю...")
-                        take_screenshot(SCREEN_PRICE[0], SCREEN_PRICE[1],
-                                    SCREEN_PRICE[2], SCREEN_PRICE[3],
-                                    "price_current.png")
-                        Image.open("price_current.png").save("price.png")
-                        target_price = recognize_price("price.png")
-                        print(f"Цена цели: {target_price}")
-                        
-                        if target_price > 0:
-                            my_price = target_price - random.choice([1, 2, 5, 10, 20])
-                            if my_price >= stop_sum:
-                                change_price(new_price)
-                                current_price = my_price
-                            else:
-                                print(f"Цена {my_price} ниже лимита {stop_sum}")
-                                send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
-
+                else:
+                    print("Разница небольшая, жду...")
+            
+            else:
+                print("Чужой лот, подрезаю...")
+                take_screenshot(SCREEN_PRICE[0], SCREEN_PRICE[1],
+                              SCREEN_PRICE[2], SCREEN_PRICE[3],
+                              "price_current.png")
+                Image.open("price_current.png").save("price.png")
+                target_price = recognize_price("price.png")
+                print(f"Цена цели: {target_price}")
+                
+                if target_price > 0:
+                    my_price = target_price - random.choice([1, 2, 5, 10, 20])
+                    if my_price >= stop_sum:
+                        change_price(my_price)
+                        current_price = my_price
+                    else:
+                        print(f"Цена {my_price} ниже лимита {stop_sum}")
+                        send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
+            
             wait_sec = get_wait_time(answer)
             print(f"Жду {wait_sec} сек...")
             for _ in range(wait_sec):

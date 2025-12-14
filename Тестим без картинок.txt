@@ -2,6 +2,7 @@
 import sys
 import os
 import ctypes
+
 def hide_console():
     """Скрывает консольное окно при запуске из EXE"""
     try:
@@ -13,8 +14,10 @@ def hide_console():
                 user32.ShowWindow(hwnd, 0)  # 0 = SW_HIDE
     except:
         pass  # Игнорируем ошибки, если что-то пошло не так
+
 # Скрываем консоль сразу при запуске
 hide_console()
+
 # ==================== ОСНОВНЫЕ ИМПОРТЫ ====================
 import pyautogui
 import time
@@ -28,8 +31,10 @@ import requests
 import tkinter as tk
 from tkinter import ttk
 import numpy as np
+
 # ==================== КОНФИГУРАЦИЯ OCR ====================
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
 # ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
 stop_event = threading.Event()
 current_price = 0
@@ -37,10 +42,12 @@ stop_sum = 0
 mode = "sell"  # sell или buy
 script_running = False
 answer = "1"
+
 # ==================== ТЕЛЕГРАМ НАСТРОЙКИ ====================
 TELEGRAM_SELL_TOKEN = '7648784424:AAEX1UE4V8azmzTFfiSaoOXKWqQn6KbDTOA'
 TELEGRAM_BUY_TOKEN = '8137914112:AAEYHuuu_rbL5fhHLQ41DtW2GxZZUJp-aLM'
 TELEGRAM_CHAT_ID = '5268693450'
+
 # ==================== КООРДИНАТЫ (продажа) ====================
 SCREEN_MY_NICKNAME = (1361, 296, 1485, 331)
 SCREEN_ENEMY = (1173, 356, 1327, 386)
@@ -53,6 +60,7 @@ DCLICK_COIN = (277, 187)
 CLICK_ALL = (443, 366)
 DCLICK_MYCOIN = (32, 187)
 CLICK_START_SELL = (303, 496)
+
 # ==================== КООРДИНАТЫ (покупка) ====================
 screen_my_nickname = (1361, 296, 1485, 331)
 screen_enemy = (1173, 356, 1327, 386)
@@ -67,19 +75,22 @@ screen_price = (1159, 302, 1326, 333)
 screen_balance = (606, 922, 741, 946)
 click_start_sell = (303, 496)
 screen_wait = (286, 279, 383, 290)
+
 # ==================== ОБЩИЕ НАСТРОЙКИ ====================
 DELAY_BEFORE_CLICK = 0.5
 DELAY_AFTER_CLICK = 0.5
 DELAY_MOUSE = 0.1
 TOLERANCE = 10
+
 # ==================== БАЗОВЫЕ ФУНКЦИИ ====================
-def take_screenshot(x1, y1, x2, y2, filename):
-    screenshot = pyautogui.screenshot(region=(x1, y1, x2 - x1, y2 - y1))
-    screenshot.save(filename)
-    return filename
-def recognize_price(image_price):
+
+def take_screenshot(x1, y1, x2, y2):
+    """Возвращает PIL.Image.Image — без сохранения на диск"""
+    return pyautogui.screenshot(region=(x1, y1, x2 - x1, y2 - y1))
+
+
+def recognize_price(image: Image.Image):
     try:
-        image = Image.open(image_price)
         image = image.resize((328, 62))
         text = pytesseract.image_to_string(image, config='digit', lang='rus')
         text = text.replace('мпн', 'млн').replace('мл', 'млн')
@@ -104,9 +115,10 @@ def recognize_price(image_price):
     except Exception as e:
         print(f"Ошибка распознавания цены: {e}")
         return 0
-def recognize_sum(image_price):
+
+
+def recognize_sum(image: Image.Image):
     try:
-        image = Image.open(image_price)
         image = image.resize((328, 62))
         text = pytesseract.image_to_string(image, config='digit', lang='rus')
         text = text.replace('мпн', 'млн').replace('мл', 'млн')
@@ -140,17 +152,20 @@ def recognize_sum(image_price):
     except Exception as e:
         print(f"Ошибка распознавания текста: {e}")
         return 0
+
+
 def recognize_balance():
     try:
-        screenshot = pyautogui.screenshot(region=SCREEN_BALANCE)
-        screenshot.save("balance_temp.png")
-        image = Image.open("balance_temp.png").resize((328, 62))
+        image = take_screenshot(*SCREEN_BALANCE)
+        image = image.resize((328, 62))
         text = pytesseract.image_to_string(image, config='--psm 6 --oem 3', lang='rus')
         text = ''.join(re.findall(r'\d', text))
         return int(text) if text else 0
     except Exception as e:
         print(f"Ошибка распознавания баланса: {e}")
         return 0
+
+
 def click(x, y, double=False):
     pyautogui.moveTo(x, y, duration=0.1)
     time.sleep(DELAY_BEFORE_CLICK)
@@ -165,6 +180,8 @@ def click(x, y, double=False):
         time.sleep(DELAY_MOUSE)
         pyautogui.mouseUp()
     time.sleep(DELAY_AFTER_CLICK)
+
+
 def double_click(x, y):
     pyautogui.moveTo(x, y, duration=0.1)
     time.sleep(DELAY_BEFORE_CLICK)
@@ -176,11 +193,15 @@ def double_click(x, y):
     time.sleep(DELAY_MOUSE)
     pyautogui.mouseUp(button='left')
     time.sleep(DELAY_AFTER_CLICK)
+
+
 def type_and_enter(text):
     pyautogui.write(str(text))
     time.sleep(DELAY_BEFORE_CLICK)
     pyautogui.press('enter')
-def compare_images(img1, img2):
+
+
+def compare_images(img1: Image.Image, img2: Image.Image):
     try:
         arr1 = np.array(img1.convert('L'))
         arr2 = np.array(img2.convert('L'))
@@ -191,6 +212,8 @@ def compare_images(img1, img2):
     except Exception as e:
         print(f"Ошибка сравнения: {e}")
         return False
+
+
 def send_telegram_message(message, is_buy=False):
     try:
         token = TELEGRAM_BUY_TOKEN if is_buy else TELEGRAM_SELL_TOKEN
@@ -199,12 +222,17 @@ def send_telegram_message(message, is_buy=False):
         requests.get(url, params=params, timeout=5)
     except Exception as e:
         print(f"Ошибка Telegram: {e}")
+
+
 def get_wait_time(mode):
     if mode == "1":
         return 70
     else:
         return random.randint(70, 180)
+
+
 # ==================== ФУНКЦИИ ДЛЯ ПРОДАЖИ ====================
+
 def check_balance_and_notify_sell():
     balance = recognize_balance()
     print(f"Баланс: {balance}")
@@ -214,6 +242,8 @@ def check_balance_and_notify_sell():
         send_telegram_message(f"🔥🔥🔥ПОСЛЕДНЯЯ ЦЕНА: {current_price}🔥🔥🔥", is_buy=False)
         return True
     return False
+
+
 def change_price(new_price):
     print(f"Меняем цену на {new_price}")
     click(CLICK_REDACT[0], CLICK_REDACT[1])
@@ -234,71 +264,71 @@ def change_price(new_price):
     time.sleep(1.5)
     click(CLICK_START_SELL[0], CLICK_START_SELL[1])
     return True
+
+
 def create_my_nickname_screenshot():
     print("Создаю эталон своего ника...")
     try:
-        take_screenshot(SCREEN_MY_NICKNAME[0], SCREEN_MY_NICKNAME[1],
-                       SCREEN_MY_NICKNAME[2], SCREEN_MY_NICKNAME[3],
-                       "my_nickname.png")
-        img = Image.open("my_nickname.png")
+        img = take_screenshot(*SCREEN_MY_NICKNAME)
         print("Эталон создан")
         return img
     except Exception as e:
         print(f"Ошибка: {e}")
         return None
+
+
 def process_selling():
     global current_price, stop_sum
     my_nick = create_my_nickname_screenshot()
     if not my_nick:
         return
-    # Инициализируем свою цену из UI
-    take_screenshot(SCREEN_PRICE[0], SCREEN_PRICE[1], 
-                   SCREEN_PRICE[2], SCREEN_PRICE[3], "price_init.png")
-    Image.open("price_init.png").save("price.png")
-    current_price = recognize_price("price.png")
+
+    price_img = take_screenshot(*SCREEN_PRICE)
+    current_price = recognize_price(price_img)
     print(f"Начальная цена: {current_price}")
+
     while not stop_event.is_set():
         try:
             if check_balance_and_notify_sell():
                 break
+
             click(CLICK_UPDATE[0], CLICK_UPDATE[1])
             time.sleep(1)
             click(CLICK_COLUMN[0], CLICK_COLUMN[1])
             time.sleep(0.4)
             click(CLICK_COLUMN[0], CLICK_COLUMN[1])
             time.sleep(0.4)
-            # Скриним ник продавца текущего лота
-            take_screenshot(SCREEN_MY_NICKNAME[0], SCREEN_MY_NICKNAME[1],
-                          SCREEN_MY_NICKNAME[2], SCREEN_MY_NICKNAME[3],
-                          "current_nick.png")
-            curr_nick_img = Image.open("current_nick.png")
-            # Если это МОЙ ник — игнорируем
+
+            curr_nick_img = take_screenshot(*SCREEN_MY_NICKNAME)
             if compare_images(my_nick, curr_nick_img):
-                print("Это мой лот, пропускаем...")
-                wait_sec = get_wait_time(answer)
-                print(f"Жду {wait_sec} сек...")
-                for _ in range(wait_sec):
-                    if stop_event.is_set():
-                        return
-                    time.sleep(1)
-                continue
-            # Иначе — это ЧУЖОЙ лот. Получаем его цену.
-            print("Чужой лот, проверяю цену...")
-            take_screenshot(SCREEN_PRICE[0], SCREEN_PRICE[1],
-                          SCREEN_PRICE[2], SCREEN_PRICE[3],
-                          "enemy_price.png")
-            enemy_price = recognize_price("enemy_price.png")
-            print(f"Цена чужого лота: {enemy_price}, моя цена: {current_price}")
-            # Подрезаем, если его цена ниже нашей
-            if enemy_price > 0 and enemy_price < current_price - 40:
-                new_price = enemy_price - random.choice([1, 2, 5, 10, 20])
-                if new_price >= stop_sum:
-                    change_price(new_price)
-                    current_price = new_price
-                    print(f"✅ Подрезал до: {new_price}")
+                print("Это мой лот, проверяю конкурента...")
+                comp_img = take_screenshot(*SCREEN_ENEMY)
+                comp_price = recognize_price(comp_img)
+                print(f"Моя цена: {current_price}, цена конкурента: {comp_price}")
+                if comp_price > 0 and (comp_price - current_price) > 40:
+                    new_price = comp_price - random.choice([1, 2, 5, 10, 20])
+                    if new_price >= stop_sum:
+                        change_price(new_price)
+                        current_price = new_price
+                    else:
+                        print(f"Новая цена {new_price} ниже stop_sum {stop_sum}")
+                        send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
                 else:
-                    print(f"Новая цена {new_price} ниже stop_sum {stop_sum}")
-                    send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
+                    print("Разница небольшая, жду...")
+            else:
+                print("Чужой лот, подрезаю...")
+                target_img = take_screenshot(*SCREEN_PRICE)
+                target_price = recognize_price(target_img)
+                print(f"Цена цели: {target_price}")
+                if target_price > 0:
+                    my_price = target_price - random.choice([1, 2, 5, 10, 20])
+                    if my_price >= stop_sum:
+                        change_price(my_price)
+                        current_price = my_price
+                    else:
+                        print(f"Цена {my_price} ниже лимита {stop_sum}")
+                        send_telegram_message("❌❌НИЖЕ ГРАНИЦЫ❌❌", is_buy=False)
+
             wait_sec = get_wait_time(answer)
             print(f"Жду {wait_sec} сек...")
             for _ in range(wait_sec):
@@ -306,14 +336,15 @@ def process_selling():
                     return
                 time.sleep(1)
         except Exception as e:
-            print(f"Ошибка в цикле продажи: {e}")
+            print(f"Ошибка в цикле: {e}")
             time.sleep(5)
+
+
 # ==================== ФУНКЦИИ ДЛЯ ПОКУПКИ ====================
+
 def check_balance_and_notify_buy(added_sum):
     try:
-        screenshot4_path = take_screenshot(screen_balance[0], screen_balance[1], screen_balance[2], screen_balance[3],
-                                           "balance.png")
-        image = Image.open(screenshot4_path)
+        image = take_screenshot(*screen_balance)
         image = image.resize((328, 62))
         text = pytesseract.image_to_string(image, config='digit', lang='rus')
         text = ''.join(re.findall(r'\d', text))
@@ -331,14 +362,13 @@ def check_balance_and_notify_buy(added_sum):
     except Exception as e:
         print(f"Ошибка при выполнении проверки sum2: {e}")
         return False
+
+
 def calculate_quantity(price_per_item):
     try:
-        balance_screenshot = take_screenshot(screen_balance[0], screen_balance[1], 
-                                            screen_balance[2], screen_balance[3], 
-                                            "balance_quantity.png")
-        balance_img = Image.open(balance_screenshot)
-        balance_img = balance_img.resize((328, 62))
-        text = pytesseract.image_to_string(balance_img, config='--psm 6 --oem 3', lang='rus')
+        image = take_screenshot(*screen_balance)
+        image = image.resize((328, 62))
+        text = pytesseract.image_to_string(image, config='--psm 6 --oem 3', lang='rus')
         text = ''.join(re.findall(r'\d', text))
         current_balance = int(text) if text else 0
         print(f"Текущий баланс: {current_balance}")
@@ -352,6 +382,8 @@ def calculate_quantity(price_per_item):
     except Exception as e:
         print(f"Ошибка при вычислении количества: {e}")
         return 1
+
+
 def process_buying():
     global stop_sum, stop_event
     step = 0
@@ -360,6 +392,7 @@ def process_buying():
     if my_nickname_screenshot is None:
         print("Не удалось создать скриншот ника. Остановка скрипта.")
         return
+
     while not stop_event.is_set():
         if step == 0:
             if check_balance_and_notify_buy(added_sum):
@@ -372,29 +405,21 @@ def process_buying():
             click(click_column[0], click_column[1])
             time.sleep(0.4)
             step = 1
+
         elif step == 1:
             print("Шаг 1: Проверяем продавца...")
-            current_nickname_path = take_screenshot(screen_my_nickname[0], screen_my_nickname[1],
-                                                   screen_my_nickname[2], screen_my_nickname[3],
-                                                   "current_nickname.png")
-            try:
-                current_nickname_img = Image.open(current_nickname_path)
-                if compare_images(my_nickname_screenshot, current_nickname_img):
-                    print("Я продаю этот товар! Пропускаем...")
-                    step = 7
-                else:
-                    print("Это не я продаю, продолжаем покупку...")
-                    step = 2
-            except Exception as e:
-                print(f"Ошибка при сравнении скриншотов: {e}")
+            current_nickname_img = take_screenshot(*screen_my_nickname)
+            if compare_images(my_nickname_screenshot, current_nickname_img):
+                print("Я продаю этот товар! Пропускаем...")
+                step = 7
+            else:
+                print("Это не я продаю, продолжаем покупку...")
                 step = 2
+
         elif step == 2:
             print("Шаг 2: Определяем цену покупки...")
-            screenshot3_path = take_screenshot(screen_price[0], screen_price[1], 
-                                              screen_price[2], screen_price[3],
-                                              "current_price.png")
-            Image.open(screenshot3_path).save('price.png')
-            current_price = recognize_sum('price.png')
+            price_img = take_screenshot(*screen_price)
+            current_price = recognize_sum(price_img)
             print(f"Цена конкурента: {current_price}")
             added_sum = current_price + random.choice([1, 2, 5, 10, 20])
             print(f"Наша цена покупки: {added_sum}")
@@ -414,6 +439,7 @@ def process_buying():
                     break
                 step = 0
                 continue
+
             print("Начинаем процесс покупки...")
             click(click_redact[0], click_redact[1])
             time.sleep(2)
@@ -426,6 +452,7 @@ def process_buying():
             double_click(dclick_mycoin[0], dclick_mycoin[1])
             time.sleep(1)
             step = 3
+
         elif step == 3:
             print("Шаг 3: Вводим цену...")
             pyautogui.write(str(added_sum))
@@ -433,6 +460,7 @@ def process_buying():
             pyautogui.press('enter')
             time.sleep(0.8)
             step = 4
+
         elif step == 4:
             print("Шаг 4: Вычисляем количество для покупки...")
             quantity = calculate_quantity(added_sum)
@@ -441,6 +469,7 @@ def process_buying():
             pyautogui.press('enter')
             time.sleep(1.5)
             step = 5
+
         elif step == 5:
             print("Шаг 5: Подтверждаем покупку...")
             click(click_start_sell[0], click_start_sell[1])
@@ -454,6 +483,7 @@ def process_buying():
                 break
             step = 0
             continue
+
         elif step == 6:
             print("Я продаю этот товар, ждем...")
             wait_time = 0
@@ -465,18 +495,13 @@ def process_buying():
                 break
             step = 0
             continue
+
         elif step == 7:
-            print("Шаг 2: Определяем цену покупки...")
-            screenshot31_path = take_screenshot(screen_price[0], screen_price[1], 
-                                              screen_price[2], screen_price[3],
-                                              "current_price.png")
-            Image.open(screenshot31_path).save('price.png')
-            my_price = recognize_sum('price.png')
-            screenshot32_path = take_screenshot(screen_enemy[0], screen_enemy[1], 
-                                    screen_enemy[2], screen_enemy[3],
-                                    "price_of_enemy.png")
-            Image.open(screenshot32_path).save('price_of_enemy.png')
-            enemy_price = recognize_sum('price_of_enemy.png')
+            print("Шаг 7: Проверяем мою цену и конкурента...")
+            my_price_img = take_screenshot(*screen_price)
+            my_price = recognize_sum(my_price_img)
+            enemy_price_img = take_screenshot(*screen_enemy)
+            enemy_price = recognize_sum(enemy_price_img)
             raznica = my_price - enemy_price
             added_sum = enemy_price + random.choice([1, 2, 5, 10, 20])
             if raznica > 40:
@@ -492,9 +517,12 @@ def process_buying():
                 double_click(dclick_mycoin[0], dclick_mycoin[1])
                 time.sleep(1)
                 step = 3
-            else: 
+            else:
                 step = 6
+
+
 # ==================== СОВРЕМЕННЫЙ ГРАФИЧЕСКИЙ ИНТЕРФЕЙС ====================
+
 class ModernTradeApp:
     def __init__(self, root):
         self.root = root
@@ -526,6 +554,7 @@ class ModernTradeApp:
         keyboard.add_hotkey('f10', self.start_script)
         keyboard.add_hotkey('f9', self.pause_script)
         keyboard.add_hotkey('esc', self.stop_script)
+
     def setup_styles(self):
         """Настройка современных стилей для виджетов"""
         style = ttk.Style()
@@ -572,6 +601,7 @@ class ModernTradeApp:
                        foreground=self.success_color,
                        font=('Segoe UI', 10, 'bold'),
                        padding=10)
+
     def create_card_frame(self, parent, title):
         """Создает карточку с закругленными углами"""
         container = ttk.Frame(parent, style='Card.TFrame', padding="15")
@@ -583,6 +613,7 @@ class ModernTradeApp:
                                   background=self.card_bg)
             title_label.pack(anchor='w', pady=(0, 10))
         return container
+
     def create_modern_switch(self, parent):
         """Создает современный переключатель-ползунок"""
         switch_frame = tk.Frame(parent, bg=self.card_bg, height=60)
@@ -593,9 +624,9 @@ class ModernTradeApp:
         switch_container = tk.Frame(switch_frame, bg=self.card_bg)
         switch_container.pack(expand=True, fill='both')
         # Создаем Canvas для сглаженной графики
-        self.switch_canvas = tk.Canvas(switch_container, 
-                                      bg=self.card_bg, 
-                                      height=50, 
+        self.switch_canvas = tk.Canvas(switch_container,
+                                      bg=self.card_bg,
+                                      height=50,
                                       width=260,
                                       highlightthickness=0,
                                       relief='flat')
@@ -609,6 +640,7 @@ class ModernTradeApp:
         self.knob_position = "left"  # или "right"
         # Рисуем начальное состояние
         self.draw_switch()
+
         def toggle_switch(event=None):
             """Переключает состояние"""
             current_mode = self.mode_var.get()
@@ -619,38 +651,37 @@ class ModernTradeApp:
             mode = new_mode
             # Анимация перемещения ползунка
             self.animate_knob(new_mode)
+
         # Привязываем клик
         self.switch_canvas.bind("<Button-1>", toggle_switch)
         return switch_frame
+
     def draw_switch(self):
         """Рисует переключатель на canvas"""
         canvas = self.switch_canvas
         canvas.delete("all")
         # Фон переключателя (прямоугольник с закругленными краями)
         bg_color = self.switch_bg
-        canvas.create_rectangle(self.padding, 5, 
+        canvas.create_rectangle(self.padding, 5,
                               self.padding + self.switch_width, self.switch_height - 5,
                               fill=bg_color, outline="", width=0)
-        # Закругленные края (рисуем круги в углах)
+        # Закругленные края
         corner_radius = 8
-        # Левый верхний
-        canvas.create_oval(self.padding, 5, 
+        canvas.create_oval(self.padding, 5,
                           self.padding + corner_radius * 2, 5 + corner_radius * 2,
                           fill=bg_color, outline="", width=0)
-        # Левый нижний
         canvas.create_oval(self.padding, self.switch_height - 5 - corner_radius * 2,
                           self.padding + corner_radius * 2, self.switch_height - 5,
                           fill=bg_color, outline="", width=0)
-        # Правый верхний
         canvas.create_oval(self.padding + self.switch_width - corner_radius * 2, 5,
                           self.padding + self.switch_width, 5 + corner_radius * 2,
                           fill=bg_color, outline="", width=0)
-        # Правый нижний
-        canvas.create_oval(self.padding + self.switch_width - corner_radius * 2, 
+        canvas.create_oval(self.padding + self.switch_width - corner_radius * 2,
                           self.switch_height - 5 - corner_radius * 2,
                           self.padding + self.switch_width, self.switch_height - 5,
                           fill=bg_color, outline="", width=0)
-        # Тексты на переключателе (слева и справа)
+
+        # Тексты на переключателе
         left_text = "💰 ПОКУПКА"
         right_text = "🛒 ПРОДАЖА"
         left_color = self.switch_text_active if self.mode_var.get() == "buy" else self.switch_text_inactive
@@ -663,72 +694,66 @@ class ModernTradeApp:
                           text=right_text,
                           font=('Segoe UI', 10, 'bold'),
                           fill=right_color)
-        # Ползунок (рисуем в два слоя для сглаживания)
+
+        # Ползунок
         if self.mode_var.get() == "buy":
-            knob_x = self.padding + 30  # Левая позиция
+            knob_x = self.padding + 30
         else:
-            knob_x = self.padding + self.switch_width - 30  # Правая позиция
+            knob_x = self.padding + self.switch_width - 30
         knob_y = self.switch_height // 2
-        # Тень ползунка (немного смещена)
+
         shadow_offset = 2
-        canvas.create_oval(knob_x - self.knob_radius + shadow_offset, 
+        canvas.create_oval(knob_x - self.knob_radius + shadow_offset,
                           knob_y - self.knob_radius + shadow_offset,
-                          knob_x + self.knob_radius + shadow_offset, 
+                          knob_x + self.knob_radius + shadow_offset,
                           knob_y + self.knob_radius + shadow_offset,
                           fill=self.switch_knob_shadow, outline="", width=0)
-        # Основной ползунок
-        canvas.create_oval(knob_x - self.knob_radius, 
+        canvas.create_oval(knob_x - self.knob_radius,
                           knob_y - self.knob_radius,
-                          knob_x + self.knob_radius, 
+                          knob_x + self.knob_radius,
                           knob_y + self.knob_radius,
                           fill=self.switch_knob, outline="", width=0)
-        # Внутренняя подсветка ползунка
         highlight_radius = self.knob_radius - 4
-        canvas.create_oval(knob_x - highlight_radius, 
+        canvas.create_oval(knob_x - highlight_radius,
                           knob_y - highlight_radius,
-                          knob_x + highlight_radius, 
+                          knob_x + highlight_radius,
                           knob_y + highlight_radius,
                           fill="#88eeff", outline="", width=0)
+
     def animate_knob(self, new_mode):
         """Анимирует перемещение ползунка"""
         if new_mode == "buy":
-            target_x = self.padding + 30  # Левая позиция
+            target_x = self.padding + 30
         else:
-            target_x = self.padding + self.switch_width - 30  # Правая позиция
-        # Находим текущую позицию ползунка
+            target_x = self.padding + self.switch_width - 30
         current_x = self.padding + 30 if self.mode_var.get() == "sell" else self.padding + self.switch_width - 30
-        # Анимация
         steps = 15
         dx = (target_x - current_x) / steps
         for i in range(steps):
             current_x += dx
-            # Перерисовываем весь переключатель с новой позицией
             self.draw_switch()
-            # Временно обновляем позицию для анимации
             self.root.update()
             time.sleep(0.01)
-        # Финальная отрисовка
         self.draw_switch()
+
     def create_ui(self):
         """Создание современного интерфейса"""
-        # Главный контейнер с паддингом
         main_container = ttk.Frame(self.root, style='Card.TFrame')
         main_container.pack(fill='both', expand=True, padx=20, pady=20)
-        # Заголовок
+
         title_label = ttk.Label(main_container,
                                text="AUTO TRADE PRO",
                                style='Title.TLabel')
         title_label.pack(pady=(0, 20))
-        # Карточка выбора режима
+
         mode_card = self.create_card_frame(main_container, "📱 ВЫБЕРИТЕ РЕЖИМ")
         mode_card.pack(fill='x', pady=(0, 15), ipady=10)
-        # Создаем современный переключатель
         self.switch = self.create_modern_switch(mode_card)
         self.switch.pack(fill='x', pady=10)
-        # Карточка настроек
+
         settings_card = self.create_card_frame(main_container, "⚙️ НАСТРОЙКИ")
         settings_card.pack(fill='x', pady=(0, 15), ipady=10)
-        # Стоп сумма
+
         stop_frame = ttk.Frame(settings_card, style='Card.TFrame')
         stop_frame.pack(fill='x', pady=(0, 10))
         stop_label = ttk.Label(stop_frame,
@@ -741,7 +766,7 @@ class ModernTradeApp:
                                        font=('Segoe UI', 10),
                                        width=20)
         self.stop_sum_entry.pack(side='left')
-        # Задержка
+
         delay_frame = ttk.Frame(settings_card, style='Card.TFrame')
         delay_frame.pack(fill='x')
         delay_label = ttk.Label(delay_frame,
@@ -752,7 +777,6 @@ class ModernTradeApp:
         self.delay_var = tk.StringVar(value="1")
         delay_btn_frame = tk.Frame(delay_frame, bg=self.card_bg)
         delay_btn_frame.pack(side='left')
-        # Радиокнопки задержки используем обычные
         delay_70 = tk.Radiobutton(delay_btn_frame,
                                  text="70 сек",
                                  variable=self.delay_var,
@@ -773,15 +797,15 @@ class ModernTradeApp:
                                    value="2",
                                    font=('Segoe UI', 10),
                                    bg=self.card_bg,
-                                   fg=self.text_color,
-                                   activebackground=self.card_bg,
+                                 fg=self.text_color,
+                                 activebackground=self.card_bg,
                                  activeforeground=self.text_color,
                                  selectcolor=self.card_bg,
                                  cursor="hand2",
                                  highlightthickness=0,
                                  bd=0)
         delay_rand.pack(side='left')
-        # Панель статуса
+
         self.status_var = tk.StringVar(value="✅ ГОТОВ К ЗАПУСКУ")
         status_card = ttk.Frame(main_container, style='Card.TFrame', padding="10")
         status_card.pack(fill='x', pady=(0, 15))
@@ -789,10 +813,9 @@ class ModernTradeApp:
                                 textvariable=self.status_var,
                                 style='Status.TLabel')
         status_label.pack(fill='x')
-        # Панель управления
+
         control_card = self.create_card_frame(main_container, "🎮 УПРАВЛЕНИЕ")
         control_card.pack(fill='x', pady=(0, 15), ipady=10)
-        # Кнопки управления
         btn_frame = ttk.Frame(control_card, style='Card.TFrame')
         btn_frame.pack(fill='x', pady=10)
         self.start_button = ttk.Button(btn_frame,
@@ -814,7 +837,7 @@ class ModernTradeApp:
                                       style='Secondary.TButton',
                                       width=15)
         self.stop_button.pack(side='left', expand=True, padx=5)
-        # Информационная панель
+
         info_card = self.create_card_frame(main_container, "ℹ️ ИНФОРМАЦИЯ")
         info_card.pack(fill='x', ipady=10)
         info_text = """• F10 - Запуск скрипта
@@ -831,12 +854,13 @@ class ModernTradeApp:
                              justify='left',
                              anchor='w')
         info_label.pack(fill='x', pady=5)
-        # Футер
+
         footer = ttk.Label(main_container,
                           text="Auto Trade Pro v2.1 • Python 3.14",
                           style='Subtitle.TLabel',
                           foreground=self.text_muted)
         footer.pack(pady=(15, 0))
+
     def start_script(self):
         global stop_sum, mode, answer, script_running
         if script_running:
@@ -854,10 +878,10 @@ class ModernTradeApp:
         self.pause_button.config(state='normal')
         stop_event.clear()
         script_running = True
-        # Запуск в отдельном потоке
         thread = threading.Thread(target=self.run_script)
         thread.daemon = True
         thread.start()
+
     def run_script(self):
         global script_running
         try:
@@ -869,6 +893,7 @@ class ModernTradeApp:
             self.root.after(0, lambda: self.status_var.set(f"❌ ОШИБКА: {str(e)[:30]}..."))
         script_running = False
         self.root.after(0, self.reset_buttons)
+
     def pause_script(self):
         global script_running
         if script_running:
@@ -877,32 +902,36 @@ class ModernTradeApp:
             self.pause_button.config(state='disabled')
             self.start_button.config(state='normal')
             script_running = False
+
     def stop_script(self):
         global script_running
         stop_event.set()
         self.status_var.set("🛑 ОСТАНОВЛЕНО")
         self.reset_buttons()
         script_running = False
+
     def reset_buttons(self):
         self.start_button.config(state='normal')
         self.pause_button.config(state='disabled')
         self.status_var.set("✅ ГОТОВ К ЗАПУСКУ")
+
+
 # ==================== ЗАПУСК ПРИЛОЖЕНИЯ ====================
 if __name__ == "__main__":
     root = tk.Tk()
-    # Установка иконки приложения (если есть)
     try:
         root.iconbitmap('icon.ico')
     except:
         pass
     app = ModernTradeApp(root)
+
     def on_closing():
         stop_event.set()
         keyboard.unhook_all_hotkeys()
         root.destroy()
         sys.exit()
+
     root.protocol("WM_DELETE_WINDOW", on_closing)
-    # Центрирование окна
     root.update_idletasks()
     width = root.winfo_width()
     height = root.winfo_height()
